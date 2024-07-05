@@ -16,9 +16,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'To-Do-App',
-      theme: ThemeData(scaffoldBackgroundColor: const Color(0xFFF3F4F6)),
-      home: const MyHomePage(title: 'To-Do List'),
+      title: 'To Do App',
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFF1D2029),
+        fontFamily: 'Poppins',
+      ),
+      home: const MyHomePage(title: 'To Do List'),
     );
   }
 }
@@ -81,8 +84,8 @@ class _MyHomePageState extends State<MyHomePage> {
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
+      backgroundColor: const Color(0xFF282B34),
+      textColor: const Color(0xFF64FFDA),
       fontSize: 16.0,
     );
   }
@@ -98,6 +101,44 @@ class _MyHomePageState extends State<MyHomePage> {
         search: search,
         filter: filter,
       );
+
+      fetchedTasks.sort((a, b) {
+        // Prioritize tasks that are past due and not done
+        if (a.duedate != null &&
+            a.duedate!.isBefore(DateTime.now()) &&
+            !a.isDone) {
+          if (b.duedate != null &&
+              b.duedate!.isBefore(DateTime.now()) &&
+              !b.isDone) {
+            return a.duedate!.compareTo(b.duedate!); // Sort by due date
+          } else {
+            return -1;
+          }
+        } else if (b.duedate != null &&
+            b.duedate!.isBefore(DateTime.now()) &&
+            !b.isDone) {
+          return 1;
+        }
+
+        // Prioritize tasks that are not done
+        if (!a.isDone && b.isDone) {
+          return -1;
+        } else if (a.isDone && !b.isDone) {
+          return 1;
+        }
+
+        // Finally, sort by due date if both are done or both are not past due
+        if (a.duedate != null && b.duedate != null) {
+          return a.duedate!.compareTo(b.duedate!);
+        } else if (a.duedate != null) {
+          return -1;
+        } else if (b.duedate != null) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+
       setState(() {
         tasks = fetchedTasks;
         errorMessage = ''; // Clear previous error message
@@ -231,8 +272,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
@@ -256,118 +297,141 @@ class _MyHomePageState extends State<MyHomePage> {
   final _formKey = GlobalKey<FormState>();
 
   void _showAddTaskDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF141414),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      contentPadding: const EdgeInsets.all(16),
+      title: const Text('Add New Task',
+          style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white)),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: titleController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Task Title',
+                labelStyle: const TextStyle(color: Colors.white),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter the task title';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: descriptionController,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Task Description',
+                labelStyle: const TextStyle(color: Colors.white),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a description';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: dateController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Due Date',
+                labelStyle: const TextStyle(color: Colors.white),
+                suffixIcon:
+                    const Icon(Icons.calendar_today, color: Colors.white),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+              ),
+              readOnly: true,
+              onTap: () => _selectDate(context),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please select a due date';
+                }
+                return null;
+              },
+            ),
+          ],
         ),
-        contentPadding: EdgeInsets.all(16),
-        title: Text('Add New Task',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      actions: [
+        Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextFormField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Task Title',
-                  border: OutlineInputBorder(
+              ElevatedButton(
+                onPressed: () {
+                  // Validate returns true if the form is valid, or false otherwise.
+                  if (_formKey.currentState!.validate()) {
+                    _addTask();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(221, 87, 195, 166),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the task title';
-                  }
-                  return null;
-                },
+                child: const Text('Save', style: TextStyle(color: Colors.white)),
               ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: descriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Task Description',
-                  border: OutlineInputBorder(
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: dateController,
-                decoration: InputDecoration(
-                  labelText: 'Due Date',
-                  suffixIcon: Icon(Icons.calendar_today),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                ),
-                readOnly: true,
-                onTap: () => _selectDate(context),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a due date';
-                  }
-                  return null;
-                },
+                child: const Text('Cancel', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
         ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              // Validate returns true if the form is valid, or false otherwise.
-              if (_formKey.currentState!.validate()) {
-                _addTask();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text('Submit', style: TextStyle(color: Colors.white)),
-          ),
-          SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text('Cancel', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
-        title: Text(widget.title),
+        backgroundColor: const Color(0xFF1D2029),
+        title: Text(widget.title,
+            style: const TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: Colors.white)),
+        centerTitle: true,
       ),
       body: Stack(
         children: [
@@ -380,10 +444,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     Expanded(
                       child: TextField(
                         controller: searchController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Search tasks...',
+                          labelStyle: TextStyle(color: Colors.white),
                           border: OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white),
+                          ),
                         ),
+                        style: const TextStyle(color: Colors.white),
                         onChanged: (value) {
                           setState(() {
                             search = value;
@@ -391,10 +463,11 @@ class _MyHomePageState extends State<MyHomePage> {
                         },
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     DropdownButton<String>(
                       value: filter,
-                      items: [
+                      dropdownColor: const Color(0xFF3A3C48),
+                      items: const [
                         DropdownMenuItem(value: 'all', child: Text('All')),
                         DropdownMenuItem(
                             value: 'completed', child: Text('Completed')),
@@ -407,27 +480,28 @@ class _MyHomePageState extends State<MyHomePage> {
                           _fetchTasks();
                         });
                       },
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ],
                 ),
                 Container(
                   width: double.infinity,
-                  margin: EdgeInsets.only(top: 16, bottom: 16),
+                  margin: const EdgeInsets.only(top: 16, bottom: 16),
                   child: ElevatedButton(
                     onPressed: () => _showAddTaskDialog(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: EdgeInsets.all(16),
+                      backgroundColor: const Color(0xFF198CF9),
+                      padding: const EdgeInsets.all(16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child:
-                        Text('Add Task', style: TextStyle(color: Colors.white)),
+                    child: const Text('Add Task',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 if (errorMessage.isNotEmpty)
-                  Text(errorMessage, style: TextStyle(color: Colors.red))
+                  Text(errorMessage, style: const TextStyle(color: Colors.red))
                 else
                   Expanded(
                     child: ListView.builder(
@@ -451,7 +525,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (isLoading)
             Container(
               color: Colors.black45,
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(),
               ),
             ),
@@ -460,7 +534,8 @@ class _MyHomePageState extends State<MyHomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddTaskDialog(context),
         tooltip: 'Add Task',
-        child: Icon(Icons.add),
+        backgroundColor: const Color(0xFF198CF9),
+        child: const Icon(Icons.add),
       ),
     );
   }
