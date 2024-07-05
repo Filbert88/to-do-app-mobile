@@ -25,11 +25,10 @@ Follow these instructions to get a copy of the project up and running on your lo
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/Filbert88/to-do-app-mobile.git
-   cd Todo-Task-mobile
     ```
 2. **Navigate to the project directory**:
     ```bash
-    cd Todo-Task-mobile
+    cd to-do-app-mobile
     ```
 3. **Install dependencies**:
     ```bash
